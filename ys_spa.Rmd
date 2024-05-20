@@ -37,6 +37,22 @@ average_gs_total_time = mean(youth_info$gs_total_time, na.rm = TRUE)
 print(average_gs_total_time)
 ```
 
+```{r youth_info_age}
+youth_info = youth_info |>
+  mutate(dob = as.Date(dob))
+
+# Calculate the age
+youth_info = youth_info |>
+  mutate(age = as.numeric(difftime(Sys.Date(), dob, units = "days")) / 365)
+
+youth_info = youth_info |>
+  mutate(age_group = cut(age, 
+                         breaks = c(14, 17, 21, 25, 29, Inf), 
+                         labels = c("14-17", "18-21", "22-25", "26-29", "30+"),
+                         right = FALSE))
+
+```
+
 Among students who have disenrolled from active coaching, the average time spent in SLAM is 4.90 years.
 
 ```{r education_by_year}
@@ -123,7 +139,7 @@ kable(diploma_summary)
 ```{r employment_length}
 # Formatting 'start_dt' and 'end_dt' as dates and converting 8900 to current date
 employment_info = employment_info |>
-  mutate(end_dt = as.Date(ifelse(end_dt == "8900-12-31", Sys.Date(), end_dt), format = "%Y-%m-%d"))
+  mutate(end_dt = as.Date(ifelse(end_dt == "8900-12-31", end_dt, Sys.Date()), format = "%Y-%m-%d"))
 
 employment_info = employment_info |>
   mutate(start_dt = as.Date(start_dt, format = "%Y-%m-%d"))
@@ -135,7 +151,7 @@ employment_info = employment_info |>
 employment_info |>
   summarise(average_length_years = mean(employment_time_days, na.rm = TRUE) / 365)
 ```
-Among students who report employment during this period, the average length of employment is 1.57 years.
+Among students who report employment during this period, the average length of employment is 1.66 years.
 
 ```{r emp_desc_stat}
 
@@ -207,10 +223,27 @@ coach_contacts = contacts |>
   summarise(total_attempts = n(),
             successful_attempts = sum(contact_outcome == success_label, na.rm = TRUE),
             success_percentage = (successful_attempts / total_attempts) * 100) |>
-  arrange(desc(success_percentage))
+  arrange(desc(success_percentage))|>
+  rename(`Coach` = coach_name, `Total Attempts` = total_attempts, `Successful Attempts` = successful_attempts, `Success Rate` = success_percentage)
 
 # Print the success table
 kable(coach_contacts)
+
+coach_contacts |>
+  summarise(average_success_rate = mean(`Success Rate`, na.rm = TRUE))
+```
+
+The average contact success rate among all coaches is 70.70%.
+
+```{r coach_plot}
+ggplot(coach_contacts, aes(x = reorder(Coach, `Success Rate`), y = `Success Rate`)) +
+  geom_point(size = 4, color = "gold") +
+  labs(title = "Contact Success Rate by Coach",
+       x = "Coach",
+       y = "Success Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
 ```
 
 ```{r supervisor_contacts}
@@ -219,7 +252,8 @@ supervisor_contacts = contacts |>
   summarise(total_attempts = n(),
             successful_attempts = sum(contact_outcome == success_label, na.rm = TRUE),
             success_percentage = (successful_attempts / total_attempts) * 100) |>
-  arrange(desc(success_percentage))
+  arrange(desc(success_percentage))|>
+  rename(`GS Supervisor` = gs_supervisor, `Total Attempts` = total_attempts, `Successful Attempts` = successful_attempts, `Success Rate` = success_percentage)
 
 # Print the success table
 kable(supervisor_contacts)
@@ -266,5 +300,38 @@ ggplot(monthly_counts, aes(x = year_month, y = count, color = outcome_type, grou
   theme(axis.text.x = element_text(angle = 60, hjust = 1))
 ```
 
+```{r employment_tests}
+#Adding age_group variable to employment_info
+youth_age = youth_info |>
+  select(youth_name, age_group)
+employment_info = employment_info |>
+  left_join(youth_age, by = "youth_name")
+employment_info = employment_info |>
+  filter(!is.na(age_group))
 
+# Employment level and age group chi-square test
+contingency_table = table(employment_info$age_group, employment_info$employment_level)
+chi_square_test = chisq.test(contingency_table)
+print(chi_square_test)
+
+# Wage level and age group ANOVA 
+anova_result = aov(wage_level ~ age_group, data = employment_info)
+print(anova_result)
+tukey_result = TukeyHSD(anova_result)
+print(tukey_result)
+```
+
+```{r wage_age}
+hourly_employment <- employment_info |>
+  filter(!is.na(wage_level) & wage_type == "per hour")
+
+# Calculate the average wage for each age group
+wage_by_age <- hourly_employment |>
+  group_by(age_group) |>
+  summarise(average_wage = mean(wage_level, na.rm = TRUE))|>
+  rename(`Age Group` = age_group, `Hourly Wage` = average_wage)
+
+# Print the results
+kable(wage_by_age)
+```
 

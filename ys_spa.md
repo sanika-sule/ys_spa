@@ -28,6 +28,21 @@ print(average_gs_total_time)
 
     ## [1] 4.899754
 
+``` r
+youth_info = youth_info |>
+  mutate(dob = as.Date(dob))
+
+# Calculate the age
+youth_info = youth_info |>
+  mutate(age = as.numeric(difftime(Sys.Date(), dob, units = "days")) / 365)
+
+youth_info = youth_info |>
+  mutate(age_group = cut(age, 
+                         breaks = c(14, 17, 21, 25, 29, Inf), 
+                         labels = c("14-17", "18-21", "22-25", "26-29", "30+"),
+                         right = FALSE))
+```
+
 Among students who have disenrolled from active coaching, the average
 time spent in SLAM is 4.90 years.
 
@@ -134,7 +149,7 @@ kable(diploma_summary)
 ``` r
 # Formatting 'start_dt' and 'end_dt' as dates and converting 8900 to current date
 employment_info = employment_info |>
-  mutate(end_dt = as.Date(ifelse(end_dt == "8900-12-31", Sys.Date(), end_dt), format = "%Y-%m-%d"))
+  mutate(end_dt = as.Date(ifelse(end_dt == "8900-12-31", end_dt, Sys.Date()), format = "%Y-%m-%d"))
 
 employment_info = employment_info |>
   mutate(start_dt = as.Date(start_dt, format = "%Y-%m-%d"))
@@ -150,10 +165,10 @@ employment_info |>
     ## # A tibble: 1 × 1
     ##   average_length_years
     ##                  <dbl>
-    ## 1           299328955.
+    ## 1                 1.66
 
 Among students who report employment during this period, the average
-length of employment is 1.57 years.
+length of employment is 1.66 years.
 
 ``` r
 emp_total = nrow(employment_info)
@@ -252,38 +267,63 @@ coach_contacts = contacts |>
   summarise(total_attempts = n(),
             successful_attempts = sum(contact_outcome == success_label, na.rm = TRUE),
             success_percentage = (successful_attempts / total_attempts) * 100) |>
-  arrange(desc(success_percentage))
+  arrange(desc(success_percentage))|>
+  rename(`Coach` = coach_name, `Total Attempts` = total_attempts, `Successful Attempts` = successful_attempts, `Success Rate` = success_percentage)
 
 # Print the success table
 kable(coach_contacts)
 ```
 
-| coach_name         | total_attempts | successful_attempts | success_percentage |
-|:-------------------|---------------:|--------------------:|-------------------:|
-| BERRY, KELVIN      |             62 |                  59 |           95.16129 |
-| ELLIS, ARNAV       |             37 |                  32 |           86.48649 |
-| MOSLEY, AMBER      |             42 |                  36 |           85.71429 |
-| RILEY, SARAHI      |            820 |                 665 |           81.09756 |
-| NASH, XIOMARA      |            917 |                 740 |           80.69793 |
-| MONROE, KATRINA    |            634 |                 502 |           79.17981 |
-| HARTMAN, BRIDGER   |            931 |                 734 |           78.83996 |
-| BULLOCK, MALAKI    |            585 |                 453 |           77.43590 |
-| VAUGHN, MALIYAH    |            651 |                 499 |           76.65131 |
-| FIGUEROA, ELLIS    |            740 |                 548 |           74.05405 |
-| MULLINS, RAYAN     |            598 |                 442 |           73.91304 |
-| NOVAK, AMARE       |            594 |                 437 |           73.56902 |
-| RIOS, JAYLON       |            811 |                 595 |           73.36621 |
-| WALLS, ABBEY       |            629 |                 429 |           68.20350 |
-| TAPIA, ROSE        |            201 |                 136 |           67.66169 |
-| STRICKLAND, CHANEL |            442 |                 292 |           66.06335 |
-| MEJIA, SHANNON     |            426 |                 278 |           65.25822 |
-| BOYD, DARNELL      |             55 |                  35 |           63.63636 |
-| HOUSE, RYLEE       |            284 |                 179 |           63.02817 |
-| DAVIDSON, CLARISSA |            329 |                 199 |           60.48632 |
-| Inactive           |            802 |                 451 |           56.23441 |
-| HULL, KADIN        |            600 |                 335 |           55.83333 |
-| ALVARADO, DEANGELO |            156 |                  77 |           49.35897 |
-| CONWAY, WAYLON     |            646 |                 297 |           45.97523 |
+| Coach              | Total Attempts | Successful Attempts | Success Rate |
+|:-------------------|---------------:|--------------------:|-------------:|
+| BERRY, KELVIN      |             62 |                  59 |     95.16129 |
+| ELLIS, ARNAV       |             37 |                  32 |     86.48649 |
+| MOSLEY, AMBER      |             42 |                  36 |     85.71429 |
+| RILEY, SARAHI      |            820 |                 665 |     81.09756 |
+| NASH, XIOMARA      |            917 |                 740 |     80.69793 |
+| MONROE, KATRINA    |            634 |                 502 |     79.17981 |
+| HARTMAN, BRIDGER   |            931 |                 734 |     78.83996 |
+| BULLOCK, MALAKI    |            585 |                 453 |     77.43590 |
+| VAUGHN, MALIYAH    |            651 |                 499 |     76.65131 |
+| FIGUEROA, ELLIS    |            740 |                 548 |     74.05405 |
+| MULLINS, RAYAN     |            598 |                 442 |     73.91304 |
+| NOVAK, AMARE       |            594 |                 437 |     73.56902 |
+| RIOS, JAYLON       |            811 |                 595 |     73.36621 |
+| WALLS, ABBEY       |            629 |                 429 |     68.20350 |
+| TAPIA, ROSE        |            201 |                 136 |     67.66169 |
+| STRICKLAND, CHANEL |            442 |                 292 |     66.06335 |
+| MEJIA, SHANNON     |            426 |                 278 |     65.25822 |
+| BOYD, DARNELL      |             55 |                  35 |     63.63636 |
+| HOUSE, RYLEE       |            284 |                 179 |     63.02817 |
+| DAVIDSON, CLARISSA |            329 |                 199 |     60.48632 |
+| Inactive           |            802 |                 451 |     56.23441 |
+| HULL, KADIN        |            600 |                 335 |     55.83333 |
+| ALVARADO, DEANGELO |            156 |                  77 |     49.35897 |
+| CONWAY, WAYLON     |            646 |                 297 |     45.97523 |
+
+``` r
+coach_contacts |>
+  summarise(average_success_rate = mean(`Success Rate`, na.rm = TRUE))
+```
+
+    ## # A tibble: 1 × 1
+    ##   average_success_rate
+    ##                  <dbl>
+    ## 1                 70.7
+
+The average contact success rate among all coaches is 70.70%.
+
+``` r
+ggplot(coach_contacts, aes(x = reorder(Coach, `Success Rate`), y = `Success Rate`)) +
+  geom_point(size = 4, color = "gold") +
+  labs(title = "Contact Success Rate by Coach",
+       x = "Coach",
+       y = "Success Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+```
+
+![](ys_spa_files/figure-gfm/coach_plot-1.png)<!-- -->
 
 ``` r
 supervisor_contacts = contacts |>
@@ -291,19 +331,20 @@ supervisor_contacts = contacts |>
   summarise(total_attempts = n(),
             successful_attempts = sum(contact_outcome == success_label, na.rm = TRUE),
             success_percentage = (successful_attempts / total_attempts) * 100) |>
-  arrange(desc(success_percentage))
+  arrange(desc(success_percentage))|>
+  rename(`GS Supervisor` = gs_supervisor, `Total Attempts` = total_attempts, `Successful Attempts` = successful_attempts, `Success Rate` = success_percentage)
 
 # Print the success table
 kable(supervisor_contacts)
 ```
 
-| gs_supervisor   | total_attempts | successful_attempts | success_percentage |
-|:----------------|---------------:|--------------------:|-------------------:|
-| MACK, GRACELYN  |           3339 |                2618 |           78.40671 |
-| RICHARDS, TALON |           2371 |                1697 |           71.57318 |
-| GATES, AMARI    |           2770 |                1930 |           69.67509 |
-| MEZA, CORBIN    |           2710 |                1754 |           64.72325 |
-| Inactive        |            802 |                 451 |           56.23441 |
+| GS Supervisor   | Total Attempts | Successful Attempts | Success Rate |
+|:----------------|---------------:|--------------------:|-------------:|
+| MACK, GRACELYN  |           3339 |                2618 |     78.40671 |
+| RICHARDS, TALON |           2371 |                1697 |     71.57318 |
+| GATES, AMARI    |           2770 |                1930 |     69.67509 |
+| MEZA, CORBIN    |           2710 |                1754 |     64.72325 |
+| Inactive        |            802 |                 451 |     56.23441 |
 
 ``` r
 contacts = contacts |>
@@ -346,3 +387,93 @@ ggplot(monthly_counts, aes(x = year_month, y = count, color = outcome_type, grou
 ```
 
 ![](ys_spa_files/figure-gfm/contacts_time-1.png)<!-- -->
+
+``` r
+#Adding age_group variable to employment_info
+youth_age = youth_info |>
+  select(youth_name, age_group)
+employment_info = employment_info |>
+  left_join(youth_age, by = "youth_name")
+employment_info = employment_info |>
+  filter(!is.na(age_group))
+
+# Employment level and age group chi-square test
+contingency_table = table(employment_info$age_group, employment_info$employment_level)
+chi_square_test = chisq.test(contingency_table)
+```
+
+    ## Warning in chisq.test(contingency_table): Chi-squared approximation may be
+    ## incorrect
+
+``` r
+print(chi_square_test)
+```
+
+    ## 
+    ##  Pearson's Chi-squared test
+    ## 
+    ## data:  contingency_table
+    ## X-squared = 23.593, df = 20, p-value = 0.2606
+
+``` r
+# Wage level and age group ANOVA 
+anova_result = aov(wage_level ~ age_group, data = employment_info)
+print(anova_result)
+```
+
+    ## Call:
+    ##    aov(formula = wage_level ~ age_group, data = employment_info)
+    ## 
+    ## Terms:
+    ##                   age_group   Residuals
+    ## Sum of Squares   1181049596 13088757408
+    ## Deg. of Freedom           4         110
+    ## 
+    ## Residual standard error: 10908.19
+    ## Estimated effects may be unbalanced
+    ## 182 observations deleted due to missingness
+
+``` r
+tukey_result = TukeyHSD(anova_result)
+print(tukey_result)
+```
+
+    ##   Tukey multiple comparisons of means
+    ##     95% family-wise confidence level
+    ## 
+    ## Fit: aov(formula = wage_level ~ age_group, data = employment_info)
+    ## 
+    ## $age_group
+    ##                      diff         lwr       upr     p adj
+    ## 18-21-14-17     17.216254  -8648.6080  8683.041 1.0000000
+    ## 22-25-14-17     18.347046  -8158.1600  8194.854 1.0000000
+    ## 26-29-14-17  10910.236842   -552.1665 22372.640 0.0701399
+    ## 30+-14-17       -4.263158 -22495.1226 22486.596 1.0000000
+    ## 22-25-18-21      1.130792  -6751.7604  6754.022 1.0000000
+    ## 26-29-18-21  10893.020588    398.5954 21387.446 0.0378200
+    ## 30+-18-21      -21.479412 -22034.7715 21991.813 1.0000000
+    ## 26-29-22-25  10891.889796    797.7470 20986.033 0.0276409
+    ## 30+-22-25      -22.610204 -21847.9117 21802.691 1.0000000
+    ## 30+-26-29   -10914.500000 -34171.2239 12342.224 0.6907592
+
+``` r
+hourly_employment <- employment_info |>
+  filter(!is.na(wage_level) & wage_type == "per hour")
+
+# Calculate the average wage for each age group
+wage_by_age <- hourly_employment |>
+  group_by(age_group) |>
+  summarise(average_wage = mean(wage_level, na.rm = TRUE))|>
+  rename(`Age Group` = age_group, `Hourly Wage` = average_wage)
+
+# Print the results
+kable(wage_by_age)
+```
+
+| Age Group | Hourly Wage |
+|:----------|------------:|
+| 14-17     |    14.90000 |
+| 18-21     |    13.76071 |
+| 22-25     |    16.35641 |
+| 26-29     |    15.77778 |
+| 30+       |    15.00000 |
